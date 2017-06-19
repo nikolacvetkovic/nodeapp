@@ -25,7 +25,7 @@ server.use(bodyParser.urlencoded({extended: true}));
 server.set("view engine", "ejs");
 
 server.get("/", function(req, res){
-	res.render("index");
+	res.render("campgrounds/index");
 });
 
 server.get("/campgrounds", function(req, res){
@@ -33,7 +33,7 @@ server.get("/campgrounds", function(req, res){
 		if(err){
 			console.log(err);
 		} else {
-			res.render("campgrounds", {campgrounds: campgrounds});
+			res.render("campgrounds/campgrounds", {campgrounds: campgrounds});
 		}
 	});
 });
@@ -47,13 +47,13 @@ server.post("/campgrounds", function(req, res){
 		if(err){
 			console.log(err);
 		} else {
-			res.redirect("/campgrounds");
+			res.redirect("/campgrounds/campgrounds");
 		}
 	});
 });
 
 server.get("/campgrounds/new", function(req, res){
-	res.render("new");
+	res.render("campgrounds/new");
 });
 
 server.get("/campgrounds/:id", function (req, res) {  //mora se postaviti ispod /campgrounds/new
@@ -61,7 +61,36 @@ server.get("/campgrounds/:id", function (req, res) {  //mora se postaviti ispod 
 		if (err) {
 			console.log(err);
 		} else {
-			res.render("show", {campground: foundCampground});
+			res.render("campgrounds/show", {campground: foundCampground});
+		}
+	});
+});
+
+server.get("/campgrounds/:id/comments/new", function(req, res){
+	Campground.findById(req.params.id, function(err, campground){
+		if(err){
+			console.log(err);
+		} else {
+			res.render("comments/new", {campground: campground});
+		}
+	});
+});
+
+server.post("/campgrounds/:id/comments", function(req, res){
+	Campground.findById(req.params.id, function(err, campground){
+		if(err){
+			console.log(err);
+			res.redirect("/campgrounds");
+		} else {
+			Comment.create(req.body.comment, function(err, comment){
+				if(err){
+					console.log(err);
+				} else {
+					campground.comments.push(comment);
+					campground.save();
+					res.redirect("/campgrounds/"+campground._id);
+				}
+			});
 		}
 	});
 });
