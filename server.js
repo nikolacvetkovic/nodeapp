@@ -1,17 +1,15 @@
 var express 	= require("express"),
 	server 		= express(),
 	bodyParser 	= require("body-parser"),
-	mongoose 	= require("mongoose");
+	mongoose 	= require("mongoose"),
+	Campground = require("./modules/campground"),
+	Comment = require("./modules/comment"),
+	// User = require("./modules/user"),
+	seedDb = require("./seeds");
+
+seedDb();
 
 mongoose.connect("mongodb://localhost/yelp_camp");
-
-var campgroundSchema = new mongoose.Schema({
-	name: String,
-	image: String,
-	description: String
-});
-
-var Campground = mongoose.model("Campground", campgroundSchema);
 
 // var campgrounds = [
 // 		{name: "Salmon Creek", image: "https://source.unsplash.com/mzZVGFfMOkA"},
@@ -59,7 +57,7 @@ server.get("/campgrounds/new", function(req, res){
 });
 
 server.get("/campgrounds/:id", function (req, res) {  //mora se postaviti ispod /campgrounds/new
-	Campground.findById(req.params.id, function(err, foundCampground){
+	Campground.findById(req.params.id).populate("comments").exec(function(err, foundCampground){
 		if (err) {
 			console.log(err);
 		} else {
