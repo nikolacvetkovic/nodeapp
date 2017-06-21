@@ -1,11 +1,14 @@
-var express 	= require("express"),
-	server 		= express(),
-	bodyParser 	= require("body-parser"),
-	mongoose 	= require("mongoose"),
-	Campground = require("./modules/campground"),
-	Comment = require("./modules/comment"),
-	// User = require("./modules/user"),
-	seedDb = require("./seeds");
+var express 		= require("express"),
+	server 			= express(),
+	bodyParser 		= require("body-parser"),
+	mongoose 		= require("mongoose"),
+	passport		= require("passport"),
+	LocalStrategy	= require("passport-local"),
+	expressSession	= require("express-session"),
+	Campground 		= require("./modules/campground"),
+	Comment 		= require("./modules/comment"),
+	User 			= require("./modules/user"),
+	seedDb 			= require("./seeds");
 
 seedDb();
 
@@ -22,7 +25,25 @@ mongoose.connect("mongodb://localhost/yelp_camp");
 // 	];
 
 server.use(bodyParser.urlencoded({extended: true}));
+server.use(express.static(__dirname + "/public")); //__dirname je direktorijum u kome je skripta
 server.set("view engine", "ejs");
+
+server.use(expressSession({
+	secret: "Tajna",
+	resave: false,
+	saveUninitialized: false
+}));
+
+server.use(passport.initialize());
+server.use(passport.session());
+passport.use(new LocalStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+server.use(function(req, res, next){
+	res.locals.currentUser = req.user;
+	next();
+});
 
 server.get("/", function(req, res){
 	res.render("campgrounds/index");
@@ -33,7 +54,7 @@ server.get("/campgrounds", function(req, res){
 		if(err){
 			console.log(err);
 		} else {
-			res.render("campgrounds/campgrounds", {campgrounds: campgrounds});
+			res.render("campgrounds/campgrounds", {campgrounds: campgrounds, currentUser: req.user});
 		}
 	});
 });
@@ -66,7 +87,7 @@ server.get("/campgrounds/:id", function (req, res) {  //mora se postaviti ispod 
 	});
 });
 
-server.get("/campgrounds/:id/comments/new", function(req, res){
+server.get("/campgrounds/:id/comments/new", isLoggedIn, function(req, res){
 	Campground.findById(req.params.id, function(err, campground){
 		if(err){
 			console.log(err);
@@ -76,7 +97,7 @@ server.get("/campgrounds/:id/comments/new", function(req, res){
 	});
 });
 
-server.post("/campgrounds/:id/comments", function(req, res){
+server.post("/campgrounds/:id/comments", isLoggedIn, function(req, res){
 	Campground.findById(req.params.id, function(err, campground){
 		if(err){
 			console.log(err);
@@ -94,6 +115,44 @@ server.post("/campgrounds/:id/comments", function(req, res){
 		}
 	});
 });
+
+server.get("/register", function(req, res){
+	res.render("register");
+});
+
+server.post("/register", function(req, res){
+	var newUser = new User({username: req.body.username});
+	User.register(newUser, req.body.password, function(err, user){
+		if(err){
+			return res.render("register");
+		}
+		passport.authenticate("local")(req, res, function(){
+			res.redirect("/campgrounds");
+		});
+	})
+});
+
+server.get("/login", function (req, res) {
+	res.render("login");
+});
+
+server.post("/login", passport.authenticate("local", {
+	successRedirect: "/campgrounds",
+	failureRedirect: "/login"
+}), function(req, res){
+});
+
+server.get("/logout", function(req, res){
+	req.logout();
+	res.redirect("/");
+});
+
+function isLoggedIn(req, res, next){
+	if(req.isAuthenticated()){
+		return next();
+	}
+	res.redirect("/login");
+}
 
 /*---------------------------*/
 server.listen(80, function(){
