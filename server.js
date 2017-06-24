@@ -6,6 +6,7 @@ var express 		= require("express"),
 	LocalStrategy	= require("passport-local"),
 	expressSession	= require("express-session"),
 	methodOverride	= require("method-override"),
+	flash			= require("connect-flash"),
 	Campground 		= require("./modules/campground"),
 	Comment 		= require("./modules/comment"),
 	User 			= require("./modules/user"),
@@ -22,6 +23,7 @@ mongoose.connect("mongodb://localhost/yelp_camp");
 server.use(bodyParser.urlencoded({extended: true}));
 server.use(express.static(__dirname + "/public")); //__dirname je direktorijum u kome je skripta
 server.use(methodOverride("_method"));
+server.use(flash());
 server.set("view engine", "ejs");
 
 server.use(expressSession({
@@ -38,6 +40,8 @@ passport.deserializeUser(User.deserializeUser());
 
 server.use(function(req, res, next){
 	res.locals.currentUser = req.user;
+	res.locals.error = req.flash("error");
+	res.locals.success = req.flash("success");
 	next();
 });
 
