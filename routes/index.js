@@ -4,7 +4,7 @@ var User = require("../modules/user");
 var passport = require("passport");
 
 router.get("/", function(req, res){
-	res.render("campgrounds/index");
+	res.render("index");
 });
 
 router.get("/register", function(req, res){
@@ -30,9 +30,10 @@ router.get("/login", function (req, res) {
 });
 
 router.post("/login", passport.authenticate("local", {
-	successRedirect: "/campgrounds",
 	failureRedirect: "/login"
 }), function(req, res){
+	var redirectionUrl = req.session.redirectUrl || "/";
+	res.redirect(redirectionUrl);
 });
 
 router.get("/logout", function(req, res){
